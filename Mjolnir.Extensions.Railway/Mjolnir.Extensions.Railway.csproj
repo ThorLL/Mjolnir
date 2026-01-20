@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <!-- NuGet Package Metadata -->
+    <PackageId>Mjolnir.Extensions.Railway</PackageId>
+    <Authors>ThorLL</Authors>
+    <Description>Railway Oriented Programming Utilities Library</Description>
+    <PackageTags>Railway;ROP;</PackageTags>
+    <PackageProjectUrl>https://www.nuget.org/packages/Mjolnir.Extensions.Railway</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ThorLL/Mjolnir</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- Build Settings -->
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

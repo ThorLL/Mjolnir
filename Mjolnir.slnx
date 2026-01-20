@@ -1,5 +1,6 @@
 <Solution>
     <Folder Name="/src/">
+        <Project Path="Mjolnir.Extensions.Railway/Mjolnir.Extensions.Railway.csproj"/>
         <Project Path="Mjolnir.Extensions.AspNetCore.Filtering/Mjolnir.Extensions.AspNetCore.Filtering.csproj" />
     </Folder>
     <Folder Name="/test/">
