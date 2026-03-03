@@ -2,12 +2,20 @@
 
 Mjolnir is a collection of .NET extensions and libraries designed to simplify common development tasks in ASP.NET Core and beyond.
 
-## Project Structure
+## Stack
 
-- `Mjolnir.Extensions.AspNetCore.Filtering`: A library providing easy-to-use filtering and sorting extensions for `IEnumerable<T>` and `IQueryable<T>` using attributes.
-- `Mjolnir.Extensions.Railway`: (TODO: Document purpose) Currently under development.
-- `Mjolnir.Extensions.AspNetCore.FilteringTest`: Unit tests and usage examples for the filtering library.
-- `scripts/`: Useful scripts for building and packaging.
+- **Language:** C# 14.0
+- **Framework:** .NET 10.0 (ASP.NET Core)
+- **Package Manager:** NuGet
+- **Testing:** xUnit
+
+## Packages
+
+### Mjolnir.Extensions.AspNetCore.Filtering
+A library providing easy-to-use filtering and sorting extensions for `IEnumerable<T>` and `IQueryable<T>` using attributes.
+
+### Mjolnir.Extensions.Railway
+A lightweight Railway Oriented Programming (ROP) library providing `Result<TSuccess, TFailure>` for elegant error handling.
 
 ## Requirements
 
@@ -15,30 +23,47 @@ Mjolnir is a collection of .NET extensions and libraries designed to simplify co
 
 ## Setup and Build
 
-To build the entire solution:
-
+### Build
+Build all projects in the solution:
 ```bash
 dotnet build
 ```
 
-To run tests:
-
+### Test
+Run all tests in the solution:
 ```bash
 dotnet test
 ```
 
-## Scripts
-
-### Packaging
-
-The `scripts/packageFiltering.sh` script can be used to create a NuGet package for the filtering library.
-
+To run tests for a specific project:
 ```bash
-./scripts/packageFiltering.sh [output_directory] [version]
+dotnet test Mjolnir.Extensions.AspNetCore.FilteringTest
 ```
 
-- `output_directory`: (Optional) Defaults to `$HOME/NuGetPackages/`.
-- `version`: (Optional) Defaults to `1.0.0`.
+### Pack
+To create NuGet packages locally:
+```bash
+dotnet pack -c Release
+```
+
+## Packaging and Release
+
+This project uses GitHub Actions to automate the packaging process.
+
+### Automated Releases
+
+A NuGet package is automatically created and uploaded as an artifact when a new GitHub Release is published. The package to be created is determined by the tag prefix:
+
+- `filtering-*`: Packages `Mjolnir.Extensions.AspNetCore.Filtering`
+- `railway-*`: Packages `Mjolnir.Extensions.Railway`
+
+Example: Creating a release with tag `filtering-1.1.0` will package the filtering library with version `1.1.0`.
+
+### Configuration
+
+To allow the workflow to publish to `nuget.org`, you must:
+1. Generate an API Key on [nuget.org](https://www.nuget.org/profiles/ManageAPIKeys).
+2. Add it as a Repository Secret named `NUGET_API_KEY` in your GitHub repository settings (`Settings` > `Secrets and variables` > `Actions`).
 
 ## License
 

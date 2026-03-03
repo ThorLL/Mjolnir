@@ -6,4 +6,9 @@
     <Folder Name="/test/">
         <Project Path="Mjolnir.Extensions.AspNetCore.FilteringTest/Mjolnir.Extensions.AspNetCore.FilteringTest.csproj" />
     </Folder>
+    <Folder Name="/solution-items/">
+        <File Path=".github/workflows/package.yml" />
+        <File Path="README.md" />
+        <File Path="LICENSE" />
+    </Folder>
 </Solution>
