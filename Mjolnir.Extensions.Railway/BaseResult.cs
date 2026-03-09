@@ -31,13 +31,35 @@ public static class Result
     /// </summary>
     /// <typeparam name="T">The type of the success value.</typeparam>
     /// <param name="func">The function to execute.</param>
-    /// <returns>A <see cref="Result{T, Exception}"/> containing the success value or the caught exception.</returns>
+    /// <returns>A <see cref="Result{T, Exception}" /> containing the success value or the caught exception.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Result<T, Exception> RunCatching<T>(Func<T> func)
     {
         try
         {
             return Success<T, Exception>(func());
+        }
+        catch (Exception exception)
+        {
+            return Failure<T, Exception>(exception);
+        }
+    }
+
+    /// <summary>
+    ///     Calls the specified function <paramref name="func" /> asynchronously and returns its encapsulated result if
+    ///     invocation was
+    ///     successful, catching any <see cref="Exception" /> that was thrown from the <paramref name="func" /> function
+    ///     execution and encapsulating it as a failure.
+    /// </summary>
+    /// <typeparam name="T">The type of the success value.</typeparam>
+    /// <param name="func">The function to execute.</param>
+    /// <returns>A <see cref="Result{T, Exception}" /> containing the success value or the caught exception.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static async Task<Result<T, Exception>> RunCatchingAsync<T>(Func<Task<T>> func)
+    {
+        try
+        {
+            return Success<T, Exception>(await func());
         }
         catch (Exception exception)
         {

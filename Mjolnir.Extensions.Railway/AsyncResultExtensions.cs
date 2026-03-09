@@ -4,7 +4,16 @@ namespace Mjolnir.Extensions.Railway;
 
 public static partial class ResultExtensions
 {
-    extension<TSuccess, TFailure>(Result<TSuccess, TFailure> result)
+    extension<TStart>(Task<TStart> start)
+    {
+        public async Task<TResult> Bind<TResult>(Func<TStart, Task<TResult>> next)
+            => await next(await start.ConfigureAwait(false)).ConfigureAwait(false);
+
+        public async Task<TResult> Next<TResult>(Func<TStart, TResult> next)
+            => next(await start.ConfigureAwait(false));
+    }
+
+    extension<TSuccess, TFailure>(Task<Result<TSuccess, TFailure>> result)
     {
         /// <summary>
         ///     Returns the result of <paramref name="onSuccess" /> for the encapsulated value if this instance represents
@@ -20,14 +29,10 @@ public static partial class ResultExtensions
         ///     <paramref name="onFailure" /> function.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public TNew Fold<TNew>(
+        public Task<TNew> Fold<TNew>(
             Func<TSuccess, TNew> onSuccess,
             Func<TFailure, TNew> onFailure
-        ) => result.Unfold(out TSuccess? success, out TFailure? failure) switch
-        {
-            false => onSuccess(success),
-            true => onFailure(failure)
-        };
+        ) => result.Next(r => r.Fold(onSuccess, onFailure));
 
         /// <summary>
         ///     Performs the given <paramref name="action" /> on the encapsulated failure value if this instance
@@ -36,18 +41,12 @@ public static partial class ResultExtensions
         /// <param name="action">The action to perform.</param>
         /// <returns>The original <c>Result</c> unchanged.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Result<TSuccess, TFailure> OnFailure(Action<TFailure> action)
-        {
-            if (result.TryGetFailure(out TFailure? failure)) action(failure);
-            return result;
-        }
+        public Task<Result<TSuccess, TFailure>> OnFailure(Action<TFailure> action)
+            => result.Next(r => r.OnFailure(action));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public async Task<Result<TSuccess, TFailure>> OnFailureAsync(Func<TFailure, Task> action)
-        {
-            if (result.TryGetFailure(out TFailure? failure)) await action(failure).ConfigureAwait(false);
-            return result;
-        }
+        public Task<Result<TSuccess, TFailure>> OnFailureAsync(Func<TFailure, Task> action) =>
+            result.Bind(r => r.OnFailureAsync(action));
 
         /// <summary>
         ///     Performs the given <paramref name="action" /> on the encapsulated success value if this instance represents
@@ -56,19 +55,12 @@ public static partial class ResultExtensions
         /// <param name="action">The action to perform.</param>
         /// <returns>The original <c>Result</c> unchanged.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Result<TSuccess, TFailure> OnSuccess(Action<TSuccess> action)
-        {
-            if (result.TryGetSuccess(out TSuccess? success)) action(success);
-            return result;
-        }
+        public Task<Result<TSuccess, TFailure>> OnSuccess(Action<TSuccess> action) =>
+            result.Next(r => r.OnSuccess(action));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public async Task<Result<TSuccess, TFailure>> OnSuccessAsync(Func<TSuccess, Task> action)
-        {
-            if (result.TryGetSuccess(out TSuccess? success)) await action(success).ConfigureAwait(false);
-            return result;
-        }
-
+        public Task<Result<TSuccess, TFailure>> OnSuccessAsync(Func<TSuccess, Task> action) =>
+            result.Bind(r => r.OnSuccessAsync(action));
 
         /// <summary>
         ///     Returns the encapsulated result of the given <paramref name="transform" /> function applied to the encapsulated
@@ -83,20 +75,12 @@ public static partial class ResultExtensions
         ///     <see cref="MapCatching" /> for an alternative that encapsulates exceptions.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Result<TNew, TFailure> Map<TNew>(Func<TSuccess, TNew> transform) =>
-            result.TryGetSuccess(out TSuccess? success) switch
-            {
-                true => Result.Success<TNew, TFailure>(transform(success)),
-                _ => new Result<TNew, TFailure>(result.Value)
-            };
+        public Task<Result<TNew, TFailure>> Map<TNew>(Func<TSuccess, TNew> transform) =>
+            result.Next(r => r.Map(transform));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public async Task<Result<TNew, TFailure>> MapAsync<TNew>(Func<TSuccess, Task<TNew>> transform) =>
-            result.TryGetSuccess(out TSuccess? success) switch
-            {
-                true => Result.Success<TNew, TFailure>(await transform(success).ConfigureAwait(false)),
-                _ => new Result<TNew, TFailure>(result.Value)
-            };
+        public Task<Result<TNew, TFailure>> MapAsync<TNew>(Func<TSuccess, Task<TNew>> transform) =>
+            result.Bind(r => r.MapAsync(transform));
 
         /// <summary>
         ///     Returns the encapsulated result of the given <paramref name="transform" /> function applied to the
@@ -111,23 +95,15 @@ public static partial class ResultExtensions
         ///     See <see cref="Map" /> for an alternative that rethrows exceptions from `transform` function.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Result<TNew, Exception> MapCatching<TNew>(Func<TSuccess, TNew> transform) =>
-            result.TryGetSuccess(out TSuccess? success) switch
-            {
-                true => Result.RunCatching(() => transform(success)),
-                _ => new Result<TNew, Exception>(result.Value)
-            };
+        public Task<Result<TNew, Exception>> MapCatching<TNew>(Func<TSuccess, TNew> transform) =>
+            result.Next(r => r.MapCatching(transform));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Task<Result<TNew, Exception>> MapCatchingAsync<TNew>(Func<TSuccess, Task<TNew>> transform) =>
-            result.TryGetSuccess(out TSuccess? success) switch
-            {
-                true => Result.RunCatchingAsync(async () => await transform(success).ConfigureAwait(false)),
-                _ => Task.FromResult(new Result<TNew, Exception>(result.Value))
-            };
+            result.Bind(r => r.MapCatchingAsync(transform));
     }
 
-    extension<TSuccess, TFailure, TRecover>(Result<TSuccess, TFailure> result) where TSuccess : TRecover
+    extension<TSuccess, TFailure, TRecover>(Task<Result<TSuccess, TFailure>> result) where TSuccess : TRecover
     {
         /// <summary>
         ///     Returns the encapsulated result of the given <paramref name="transform" /> function applied to the encapsulated
@@ -140,20 +116,12 @@ public static partial class ResultExtensions
         ///     <see cref="RecoverCatching" /> for an alternative that encapsulates exceptions.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Result<TRecover, TFailure> Recover(Func<TFailure, TRecover> transform) =>
-            result.TryGetFailure(out TFailure? failure) switch
-            {
-                true => Result.Success<TRecover, TFailure>(transform(failure)),
-                false => new Result<TRecover, TFailure>(result.Value)
-            };
+        public Task<Result<TRecover, TFailure>> Recover(Func<TFailure, TRecover> transform) =>
+            result.Next(r => r.Recover(transform));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public async Task<Result<TRecover, TFailure>> RecoverAsync(Func<TFailure, Task<TRecover>> transform) =>
-            result.TryGetFailure(out TFailure? failure) switch
-            {
-                true => Result.Success<TRecover, TFailure>(await transform(failure).ConfigureAwait(false)),
-                false => new Result<TRecover, TFailure>(result.Value)
-            };
+        public Task<Result<TRecover, TFailure>> RecoverAsync(Func<TFailure, Task<TRecover>> transform) =>
+            result.Bind(r => r.RecoverAsync(transform));
 
         /// <summary>
         ///     Returns the encapsulated result of the given <paramref name="transform" /> function applied to the encapsulated
@@ -166,20 +134,12 @@ public static partial class ResultExtensions
         ///     encapsulates it as a failure. See <see cref="Recover" /> for an alternative that rethrows exceptions.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Result<TRecover, Exception> RecoverCatching(Func<TFailure, TRecover> transform) =>
-            result.TryGetFailure(out TFailure? failure) switch
-            {
-                true => Result.RunCatching(() => transform(failure)),
-                false => new Result<TRecover, Exception>(result.Value)
-            };
+        public Task<Result<TRecover, Exception>> RecoverCatching(Func<TFailure, TRecover> transform) =>
+            result.Next(r => r.RecoverCatching(transform));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Task<Result<TRecover, Exception>> RecoverCatchingAsync(Func<TFailure, Task<TRecover>> transform) =>
-            result.TryGetFailure(out TFailure? failure) switch
-            {
-                true => Result.RunCatchingAsync(async () => await transform(failure).ConfigureAwait(false)),
-                false => Task.FromResult(new Result<TRecover, Exception>(result.Value))
-            };
+            result.Bind(r => r.RecoverCatchingAsync(transform));
 
         /// <summary>
         ///     Returns the encapsulated value if this instance represents success or the <paramref name="defaultValue" /> if
@@ -188,11 +148,7 @@ public static partial class ResultExtensions
         /// <param name="defaultValue">The value to return if the result is a failure.</param>
         /// <returns>The success value or <paramref name="defaultValue" />.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public TRecover GetOrDefault(TRecover defaultValue) => result.TryGetSuccess(out TSuccess? success) switch
-        {
-            true => success,
-            _ => defaultValue
-        };
+        public Task<TRecover> GetOrDefault(TRecover defaultValue) => result.Next(r => r.GetOrDefault(defaultValue));
 
         /// <summary>
         ///     Returns the encapsulated value if this instance represents success or the result of
@@ -201,19 +157,11 @@ public static partial class ResultExtensions
         /// <param name="onFailure">The function to execute if the result is failure.</param>
         /// <returns>The success value or the result of <paramref name="onFailure" />.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public TRecover GetOrElse(Func<TFailure, TRecover> onFailure) =>
-            result.Unfold(out TSuccess? success, out TFailure? failure) switch
-            {
-                false => success,
-                true => onFailure(failure)
-            };
+        public Task<TRecover> GetOrElse(Func<TFailure, TRecover> onFailure) =>
+            result.Next(r => r.GetOrElse(onFailure));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public async Task<TRecover> GetOrElseAsync(Func<TFailure, Task<TRecover>> onFailure) =>
-            result.Unfold(out TSuccess? success, out TFailure? failure) switch
-            {
-                false => success,
-                true => await onFailure(failure).ConfigureAwait(false)
-            };
+        public Task<TRecover> GetOrElseAsync(Func<TFailure, Task<TRecover>> onFailure) =>
+            result.Bind(r => r.GetOrElseAsync(onFailure));
     }
 }
