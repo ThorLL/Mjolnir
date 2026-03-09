@@ -4,6 +4,9 @@ namespace Mjolnir.Extensions.Railway;
 
 public static partial class ResultExtensions
 {
+    public static Task<TSuccess> GetOrThrow<TSuccess, TFailure>(this Task<Result<TSuccess, TFailure>> result)
+        where TFailure : Exception => result.Next(r => r.GetOrThrow());
+
     extension<TStart>(Task<TStart> start)
     {
         public async Task<TResult> Bind<TResult>(Func<TStart, Task<TResult>> next)

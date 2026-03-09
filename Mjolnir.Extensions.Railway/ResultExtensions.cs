@@ -4,6 +4,11 @@ namespace Mjolnir.Extensions.Railway;
 
 public static partial class ResultExtensions
 {
+    public static TSuccess GetOrThrow<TSuccess, TFailure>(this Result<TSuccess, TFailure> result)
+        where TFailure : Exception => result.Unfold(out TSuccess? success, out TFailure? failure) ?
+        success :
+        throw failure;
+
     extension<TSuccess, TFailure>(Result<TSuccess, TFailure> result)
     {
         /// <summary>
