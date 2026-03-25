@@ -7,10 +7,23 @@ using Mjolnir.Extensions.AspNetCore.Filtering.Attributes;
 
 namespace Mjolnir.Extensions.AspNetCore.Filtering.Extensions;
 
+/// <summary>
+///     Response object containing a filterable or sortable property name and its usage description.
+/// </summary>
+/// <param name="Name">The property name.</param>
+/// <param name="Description">A human-readable description of how to filter/sort by this property.</param>
 public record OptionResponse(string Name, string Description);
 
+/// <summary>
+///     Extension methods for <see cref="IEndpointRouteBuilder" /> to register filter and sort option endpoints.
+/// </summary>
 public static class EndpointRouteBuilderExtensions
 {
+    /// <summary>
+    ///     Gets all filterable properties of the specified type with their descriptions.
+    /// </summary>
+    /// <typeparam name="T">The type to inspect for filterable properties.</typeparam>
+    /// <returns>An enumerable of <see cref="OptionResponse" /> objects describing available filters.</returns>
     internal static IEnumerable<OptionResponse> GetFilterableProps<T>() => typeof(T)
         .GetProperties()
         .Select(prop =>
@@ -25,6 +38,11 @@ public static class EndpointRouteBuilderExtensions
         .MustBeUnique(v => v.name)
         .Select(v => new OptionResponse(v.name, v.description));
 
+    /// <summary>
+    ///     Gets all sortable properties of the specified type with their descriptions.
+    /// </summary>
+    /// <typeparam name="T">The type to inspect for sortable properties.</typeparam>
+    /// <returns>An enumerable of <see cref="OptionResponse" /> objects describing available sorts.</returns>
     internal static IEnumerable<OptionResponse> GetSortableProps<T>() => typeof(T)
         .GetProperties()
         .Select(prop =>
@@ -41,6 +59,15 @@ public static class EndpointRouteBuilderExtensions
 
     extension(IEndpointRouteBuilder app)
     {
+        /// <summary>
+        ///     Maps a GET endpoint that returns the list of filterable properties for the specified type
+        ///     with their filter usage instructions.
+        /// </summary>
+        /// <typeparam name="T">The type whose filterable properties will be exposed.</typeparam>
+        /// <param name="app">The endpoint route builder.</param>
+        /// <param name="pattern">The route pattern for the endpoint.</param>
+        /// <param name="entityName">The human-readable name of the entity type (e.g., "Product", "User").</param>
+        /// <returns>A route handler builder for further configuration.</returns>
         public RouteHandlerBuilder MapFilterOptions<T>([StringSyntax("Route")] string pattern, string entityName)
         {
             IEnumerable<OptionResponse> response = GetFilterableProps<T>();
@@ -65,6 +92,15 @@ public static class EndpointRouteBuilderExtensions
                      """);
         }
 
+        /// <summary>
+        ///     Maps a GET endpoint that returns the list of sortable properties for the specified type
+        ///     with their sort usage instructions.
+        /// </summary>
+        /// <typeparam name="T">The type whose sortable properties will be exposed.</typeparam>
+        /// <param name="app">The endpoint route builder.</param>
+        /// <param name="pattern">The route pattern for the endpoint.</param>
+        /// <param name="entityName">The human-readable name of the entity type (e.g., "Product", "User").</param>
+        /// <returns>A route handler builder for further configuration.</returns>
         public RouteHandlerBuilder MapSortOptions<T>([StringSyntax("Route")] string pattern, string entityName)
         {
             IEnumerable<OptionResponse> response = GetSortableProps<T>();
