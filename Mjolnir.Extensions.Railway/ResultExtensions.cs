@@ -2,8 +2,24 @@
 
 namespace Mjolnir.Extensions.Railway;
 
-public static partial class ResultExtensions
+/// <summary>
+///     Provides extension methods for railway-oriented programming Result handling.
+/// </summary>
+public static class ResultExtensions
 {
+    /// <summary>
+    ///     Retrieves the success value of the encapsulated result, or throws the failure exception if the result is a failure.
+    /// </summary>
+    /// <typeparam name="TSuccess">The type of the success value.</typeparam>
+    /// <typeparam name="TFailure">The type of the failure exception, which must be a subclass of <see cref="Exception" />.</typeparam>
+    /// <param name="result">
+    ///     The task encapsulating the result from which to retrieve the success value or throw the failure
+    ///     exception.
+    /// </param>
+    /// <returns>
+    ///     A task that represents the asynchronous operation. The task result contains the success value if the operation
+    ///     succeeds.
+    /// </returns>
     public static TSuccess GetOrThrow<TSuccess, TFailure>(this Result<TSuccess, TFailure> result)
         where TFailure : Exception => result.Unfold(out TSuccess? success, out TFailure? failure) ?
         success :
@@ -47,6 +63,12 @@ public static partial class ResultExtensions
             return result;
         }
 
+        /// <summary>
+        ///     Performs the given <paramref name="action" /> on the encapsulated failure value if this instance
+        ///     represents <see cref="Result{TSuccess,TFailure}.IsFailure" />.
+        /// </summary>
+        /// <param name="action">The action to perform.</param>
+        /// <returns>The original <c>Result</c> unchanged.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public async Task<Result<TSuccess, TFailure>> OnFailureAsync(Func<TFailure, Task> action)
         {
@@ -67,6 +89,12 @@ public static partial class ResultExtensions
             return result;
         }
 
+        /// <summary>
+        ///     Performs the given <paramref name="action" /> on the encapsulated success value if this instance represents
+        ///     <see cref="Result{TSuccess,TFailure}.IsSuccess" />.
+        /// </summary>
+        /// <param name="action">The action to perform.</param>
+        /// <returns>The original <c>Result</c> unchanged.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public async Task<Result<TSuccess, TFailure>> OnSuccessAsync(Func<TSuccess, Task> action)
         {
@@ -95,6 +123,18 @@ public static partial class ResultExtensions
                 _ => new Result<TNew, TFailure>(result.Value)
             };
 
+        /// <summary>
+        ///     Returns the encapsulated result of the given <paramref name="transform" /> function applied to the encapsulated
+        ///     value if this instance represents <see cref="Result{TSuccess,TFailure}.IsSuccess" /> or the original encapsulated
+        ///     failure value if it is <see cref="Result{TSuccess,TFailure}.IsFailure" />.
+        /// </summary>
+        /// <typeparam name="TNew">The type of the success value after transformation.</typeparam>
+        /// <param name="transform">The transformation function.</param>
+        /// <returns>A new <see cref="Result{TNew, TFailure}" />.</returns>
+        /// <remarks>
+        ///     This function rethrows any exception thrown by <paramref name="transform" /> function. See
+        ///     <see cref="MapCatchingAsync" /> for an alternative that encapsulates exceptions.
+        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public async Task<Result<TNew, TFailure>> MapAsync<TNew>(Func<TSuccess, Task<TNew>> transform) =>
             result.TryGetSuccess(out TSuccess? success) switch
@@ -123,6 +163,18 @@ public static partial class ResultExtensions
                 _ => new Result<TNew, Exception>(result.Value)
             };
 
+        /// <summary>
+        ///     Returns the encapsulated result of the given <paramref name="transform" /> function applied to the
+        ///     encapsulated value if this instance represents success or the original encapsulated failure value if failure.
+        /// </summary>
+        /// <typeparam name="TNew">The type of the success value after transformation.</typeparam>
+        /// <param name="transform">The transformation function.</param>
+        /// <returns>A new <see cref="Result{TNew, Exception}" />.</returns>
+        /// <remarks>
+        ///     This function catches any <see cref="Exception" /> thrown by <paramref name="transform" /> function and
+        ///     encapsulates it as a failure.
+        ///     See <see cref="MapAsync" /> for an alternative that rethrows exceptions from `transform` function.
+        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Task<Result<TNew, Exception>> MapCatchingAsync<TNew>(Func<TSuccess, Task<TNew>> transform) =>
             result.TryGetSuccess(out TSuccess? success) switch
@@ -152,6 +204,16 @@ public static partial class ResultExtensions
                 false => new Result<TRecover, TFailure>(result.Value)
             };
 
+        /// <summary>
+        ///     Returns the encapsulated result of the given <paramref name="transform" /> function applied to the encapsulated
+        ///     failure value if this instance represents failure or the original encapsulated value if success.
+        /// </summary>
+        /// <param name="transform">The recovery function.</param>
+        /// <returns>A new <see cref="Result{TRecover, TFailure}" />.</returns>
+        /// <remarks>
+        ///     Note, that this function rethrows any exception thrown by <paramref name="transform" /> function. See
+        ///     <see cref="RecoverCatchingAsync" /> for an alternative that encapsulates exceptions.
+        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public async Task<Result<TRecover, TFailure>> RecoverAsync(Func<TFailure, Task<TRecover>> transform) =>
             result.TryGetFailure(out TFailure? failure) switch
@@ -178,6 +240,16 @@ public static partial class ResultExtensions
                 false => new Result<TRecover, Exception>(result.Value)
             };
 
+        /// <summary>
+        ///     Returns the encapsulated result of the given <paramref name="transform" /> function applied to the encapsulated
+        ///     failure value if this instance represents failure or the original encapsulated value if success.
+        /// </summary>
+        /// <param name="transform">The recovery function.</param>
+        /// <returns>A new <see cref="Result{TRecover, Exception}" />.</returns>
+        /// <remarks>
+        ///     This function catches any <see cref="Exception" /> thrown by <paramref name="transform" /> function and
+        ///     encapsulates it as a failure. See <see cref="RecoverAsync" /> for an alternative that rethrows exceptions.
+        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Task<Result<TRecover, Exception>> RecoverCatchingAsync(Func<TFailure, Task<TRecover>> transform) =>
             result.TryGetFailure(out TFailure? failure) switch
@@ -213,6 +285,12 @@ public static partial class ResultExtensions
                 true => onFailure(failure)
             };
 
+        /// <summary>
+        ///     Returns the encapsulated value if this instance represents success or the result of
+        ///     <paramref name="onFailure" /> function for the encapsulated failure value if failure.
+        /// </summary>
+        /// <param name="onFailure">The function to execute if the result is failure.</param>
+        /// <returns>The success value or the result of <paramref name="onFailure" />.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public async Task<TRecover> GetOrElseAsync(Func<TFailure, Task<TRecover>> onFailure) =>
             result.Unfold(out TSuccess? success, out TFailure? failure) switch

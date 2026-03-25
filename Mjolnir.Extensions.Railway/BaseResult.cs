@@ -2,6 +2,9 @@
 
 namespace Mjolnir.Extensions.Railway;
 
+/// <summary>
+///     Static methods for creating result instances that encapsulate success or failure outcomes.
+/// </summary>
 public static class Result
 {
     /// <summary>
