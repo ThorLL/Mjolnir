@@ -27,8 +27,12 @@ jobs:
             echo "project_path=Mjolnir.Extensions.Railway/Mjolnir.Extensions.Railway.csproj" >> $GITHUB_OUTPUT
             echo "version=${TAG_NAME#railway-}" >> $GITHUB_OUTPUT
             echo "package_name=railway" >> $GITHUB_OUTPUT
+          elif [[ $TAG_NAME == exceptions-* ]]; then
+            echo "project_path=Mjolnir.Extensions.Exceptions/Mjolnir.Extensions.Exceptions.csproj" >> $GITHUB_OUTPUT
+            echo "version=${TAG_NAME#exceptions-}" >> $GITHUB_OUTPUT
+            echo "package_name=exceptions" >> $GITHUB_OUTPUT
           else
-            echo "::error::Release tag '$TAG_NAME' does not match expected format (filtering-* or railway-*)"
+            echo "::error::Release tag '$TAG_NAME' does not match expected format (filtering-*, railway-* or exceptions-*)"
             exit 1
           fi
 
