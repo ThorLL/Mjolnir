@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Mjolnir.Extensions.Exceptions.Handlers;
 
@@ -15,9 +16,19 @@ public static class Di
     /// </summary>
     /// <param name="services">The service collection to register handlers with.</param>
     /// <returns>The updated service collection for chaining.</returns>
-    public static IServiceCollection AddMjolnirExceptionsHandler(this IServiceCollection services) => services
-        .AddExceptionHandler<ValidationExceptionHandler>()
-        .AddExceptionHandler<MjolnirExceptionHandler>();
+    public static IServiceCollection AddMjolnirExceptionsHandler(
+        this IServiceCollection services,
+        Action<HandlerConfig>? configuration = null
+    )
+    {
+        HandlerConfig config = new();
+        configuration?.Invoke(config);
+        services.AddSingleton(config);
+
+        return services
+            .AddExceptionHandler<ValidationExceptionHandler>()
+            .AddExceptionHandler<MjolnirExceptionHandler>();
+    }
 
     /// <summary>
     ///     Adds the global exception handler middleware to the application pipeline.

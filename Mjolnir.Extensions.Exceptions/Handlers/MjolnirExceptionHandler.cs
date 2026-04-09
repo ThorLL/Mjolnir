@@ -10,6 +10,7 @@ namespace Mjolnir.Extensions.Exceptions.Handlers;
 ///     Converts exceptions to ProblemDetails responses with appropriate HTTP status codes.
 /// </summary>
 internal sealed class MjolnirExceptionHandler(
+    HandlerConfig handlerConfig,
     IProblemDetailsService problemDetailsService,
     ILogger<MjolnirExceptionHandler> logger
 ) : IExceptionHandler
@@ -30,20 +31,28 @@ internal sealed class MjolnirExceptionHandler(
         CancellationToken cancellationToken
     )
     {
-        if (exception is AggregateException { InnerException: not null } ex) exception = ex.InnerException!;
+        exception = Unwrap(exception);
 
-        while (exception is MjolnirException { InnerException: MjolnirException innerEx }) exception = innerEx;
+        ProblemDetails details;
 
-        string problemMessage = "Unhandled exception";
-        Exception problemException = exception;
-
-        httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
-
-        if (exception is MjolnirException hammerEx)
+        if (handlerConfig.CustomExceptionHandlers.TryGetValue(
+            exception.GetType(),
+            out Func<Exception, (ProblemDetails details, int statusCode)>? customHandler
+        ))
         {
-            problemException = hammerEx.InnerException ?? hammerEx;
-            problemMessage = hammerEx.Message;
+            (details, httpContext.Response.StatusCode) = customHandler(exception);
+        }
+        else if (exception is MjolnirException hammerEx)
+        {
+            details = new ProblemDetails
+            {
+                Type = (hammerEx.InnerException ?? hammerEx).GetType().Name,
+                Title = "An error occurred",
+                Detail = hammerEx.Message
+            };
+
             httpContext.Response.StatusCode = hammerEx.StatusCode;
+
             if (hammerEx.StatusCode < 500)
                 logger.LogInformation(exception, "Handled exception caught global handler");
             else
@@ -51,19 +60,40 @@ internal sealed class MjolnirExceptionHandler(
         }
         else
         {
-            logger.LogError(exception, "Unhandled exception caught by global exception handler");
+            details = new ProblemDetails
+            {
+                Type = exception.GetType().Name,
+                Title = "An error occurred",
+                Detail = "Internal server error"
+            };
+
+            httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            logger.LogError(exception, "Unhandled exception caught global handler");
         }
 
         return problemDetailsService.TryWriteAsync(new ProblemDetailsContext
         {
             HttpContext = httpContext,
-            Exception = problemException,
-            ProblemDetails = new ProblemDetails
-            {
-                Type = problemException.GetType().Name,
-                Title = "An error occurred",
-                Detail = problemMessage
-            }
+            Exception = exception,
+            ProblemDetails = details
         });
+    }
+
+    private Exception Unwrap(Exception exception)
+    {
+        while (true)
+        {
+            switch (exception)
+            {
+                case MjolnirException { InnerException: MjolnirException innerEx }:
+                    exception = innerEx;
+                    continue;
+                case AggregateException { InnerException: not null } ex:
+                    exception = ex;
+                    continue;
+                default:
+                    return exception;
+            }
+        }
     }
 }
