@@ -18,7 +18,7 @@ A library providing easy-to-use filtering and sorting extensions for `IEnumerabl
 A lightweight Railway Oriented Programming (ROP) library providing `Result<TSuccess, TFailure>` for elegant error handling.
 
 ## Requirements
-
+ TEST
 - .NET 10.0 SDK or later
 
 ## Setup and Build
